@@ -1,0 +1,110 @@
+[bypass_all]
+
+[proxy_list]
+(?:^|\.)instagram\.com$
+(?:^|\.)cdninstagram\.com$
+(?:^|\.)fbsbx\.com$
+(?:^|\.)fbcdn\.net$
+(?:^|\.)facebook\.com$
+(?:^|\.)revolut\.com$
+(?:^|\.)paypall\.com$
+(?:^|\.)crv\.it$
+(?:^|\.)monese\.com$
+(?:^|\.)paysend\.com$
+(?:^|\.)binance\.com$
+(?:^|\.)cieID\.it$
+(?:^|\.)filmix\.ac$
+(?:^|\.)filmix\.cc$
+(?:^|\.)tiktok\.com$
+(?:^|\.)amazon\.com$
+(?:^|\.)rutracker\.nl$
+(?:^|\.)nnmclub\.to$
+(?:^|\.)openai\.com$
+(?:^|\.)chat.openai\.com$
+(?:^|\.)linkedin\.com$
+(?:^|\.)open.spotify\.com$
+(?:^|\.)spotify\.com$
+(?:^|\.)sputnikipogrom\.com$
+(?:^|\.)currenttime\.tv$
+(?:^|\.)tvrain\.ru$
+(?:^|\.)echo.msk\.ru$
+(?:^|\.)redtube\.com$
+(?:^|\.)the-village\.ru$
+(?:^|\.)dw\.com$
+(?:^|\.)meduza\.io$
+(?:^|\.)bellingcat\.com$
+(?:^|\.)euronews\.comm$
+(?:^|\.)news.google\.com$
+(?:^|\.)reddit\.com$
+(?:^|\.)kinozal\.tv$
+(?:^|\.)rutor\.org$
+(?:^|\.)badoo\.com$
+(?:^|\.)tinder\.com$
+(?:^|\.)Chess\.com$
+(?:^|\.)rutracker-net\.ru$
+(?:^|\.)rutracker\.net$
+(?:^|\.)grani\.ru$ 
+(?:^|\.)newtimes\.ru$ 
+(?:^|\.)krymr\.com$ 
+(?:^|\.)tvrain\.ru$ 
+(?:^|\.)svoboda\.org$ 
+(?:^|\.)dw\.com$ 
+(?:^|\.)snob\.ru$ 
+(?:^|\.)novayagazeta\.ru$ 
+(?:^|\.)Rutracker\.ru$ 
+(?:^|\.)Rutracker.net$ 
+(?:^|\.)maintracker\.org$ 
+(?:^|\.)nnmclub\.ro$ 
+(?:^|\.)kinoprofi-online\.club$ 
+(?:^|\.)seasonvar\.ru$ 
+(?:^|\.)bigcinema\.club$ 
+(?:^|\.)vmuzike\.ru$ 
+(?:^|\.)my-hit\.fm$ 
+(?:^|\.)kinobar\.cc$ 
+(?:^|\.)muzuka\.me$ 
+(?:^|\.)kinogo-net\.co$ 
+(?:^|\.)rutracker\.cr$ 
+(?:^|\.)Netflix\.com$ 
+(?:^|\.)amazon\.com$ 
+(?:^|\.)aws.amazon\.com$ 
+(?:^|\.)rezka\.ag$ 
+(?:^|\.)videoframe\.at$ 
+(?:^|\.)videoCDN\.tv$ 
+(?:^|\.)filmozavr\.com$ 
+(?:^|\.)alloha\.tv$ 
+(?:^|\.)rutor\.org$ 
+(?:^|\.)rutor\.info$ 
+(?:^|\.)rutor\.is$ 
+(?:^|\.)seopirat\.club$ 
+(?:^|\.)kinozal\.tv$ 
+(?:^|\.)filmix\.ac$ 
+(?:^|\.)filmix\.cc$ 
+(?:^|\.)rezka\.app$ 
+(?:^|\.)zona\.plus$ 
+(?:^|\.)zona\.tv$ 
+(?:^|\.)zona\.pub$ 
+(?:^|\.)w6\.zona\.plus$ 
+(?:^|\.)kino\.pub$
+(?:^|\.)ebay\.com$
+(?:^|\.)ebay\.it$
+(?:^|\.)amazon\.it$
+(?:^|\.)paypall\.it$
+
+# Telegram IPs$
+# 91.108.4.0/22
+# 91.108.8.0/21
+# 91.108.16.0/21
+# 91.108.36.0/22
+# 91.108.56.0/22
+# 109.239.140.0/24
+# 149.154.160.0/20
+# 14.102.250.18
+# 14.102.250.19
+# 174.142.105.153
+# 50.7.31.230
+# 67.220.91.15
+# 67.220.91.18
+# 67.220.91.23
+# 69.65.19.160
+# 72.52.81.22
+# 85.17.73.31
