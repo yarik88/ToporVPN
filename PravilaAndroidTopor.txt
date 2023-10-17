@@ -1,4 +1,9 @@
 (?:^|\.)instagram\.com$
+(?:^|\.)instagram\.com$
+(?:^|\.)instagram\.com$
+(?:^|\.)instagram\.com$
+(?:^|\.)instagram\.com$
+(?:^|\.)instagram\.com$
 (?:^|\.)cdninstagram\.com$
 (?:^|\.)fbsbx\.com$
 (?:^|\.)fbcdn\.net$
