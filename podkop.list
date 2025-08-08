@@ -65,6 +65,7 @@ nrdp50-appboot.netflix.com
 ocfconnect-shard-eu02-euwest1.samsungiotcloud.com
 osb-apps.samsungqbe.com
 osb-auth-eusvc.samsungqbe.com
+cdn.oaistatic.com
 osb.samsungqbe.com
 pool.ntp.org
 s79048.cdn.ngenix.net
@@ -80,3 +81,9 @@ amnezia.com
 amnezia.org
 dostavkavsem.pro
 github.com
+chat.openai.com
+intercomcdn.com
+oaistatic.com
+oaiusercontent.com
+openai.com
+chat.openai.com.cdn.cloudflare.net
