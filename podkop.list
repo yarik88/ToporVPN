@@ -1,4 +1,3 @@
-2ip.io
 rutracker.nl
 nnmclub.to
 maintracker.org
@@ -37,7 +36,6 @@ ntp.airable.io
 ocfconnect-shard-eu02-euwest1.samsungiotcloud.com
 secure.netflix.com
 time.samsungcloudsolution.com
-tv-app-test.s3.yandex.net
 config.samsungads.com
 config.sbixby.com
 configprd.samsungcloudsolution.net
@@ -49,8 +47,6 @@ images.samsung.com
 musicid.samsungcloud.tv
 notice.samsungcloudsolution.com
 cdn.oaistatic.com
-pool.ntp.org
-s79048.cdn.ngenix.net
 selfsigned.ueiwsp.com
 podkop.net
 speedtest.net
@@ -215,5 +211,5 @@ browser-intake-datadoghq.com
 chatgpt.livekit.cloud
 host.livekit.cloud
 turn.livekit.cloud
-
+itch.io
 perplexity.ai
