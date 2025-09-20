@@ -152,15 +152,12 @@ api.telegram.org
 signal.org
 whispersystems.org
 viber.com
-google.com
 gstatic.com
 googleusercontent.com
 gemini.google.com
 gemini.google
 stripe.com
 reve.com
-
-
 audio-ws1.telegram.org
 audio-ws2.telegram.org
 audio-ws3.telegram.org
@@ -191,11 +188,9 @@ webrtc-7.telegram.org
 webrtc-8.telegram.org
 webrtc-9.telegram.org
 webrtc-10.telegram.org
-
 configdl.teamviewer.com
 webapi.teamviewer.com
 teamviewer.com
-
 chatgpt.com
 chat.com
 oaistatic.com
