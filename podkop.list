@@ -47,7 +47,6 @@ i.ytimg.com
 images.samsung.com
 musicid.samsungcloud.tv
 notice.samsungcloudsolution.com
-cdn.oaistatic.com
 selfsigned.ueiwsp.com
 podkop.net
 speedtest.net
@@ -58,8 +57,6 @@ amnezia.com
 amnezia.org
 dostavkavsem.pro
 intercomcdn.com
-oaistatic.com
-oaiusercontent.com
 wa.me
 whatsapp-plus.info
 whatsapp-plus.me
@@ -74,7 +71,6 @@ whatsappbrand.com
 graph.whatsapp.com
 graph.whatsapp.net
 ntc.party
-files.oaiusercontent.com
 statsig.com
 statsigapi.net
 events.statsigapi.net
@@ -176,15 +172,8 @@ webrtc-10.telegram.org
 configdl.teamviewer.com
 webapi.teamviewer.com
 teamviewer.com
-chatgpt.com
-chat.com
-oaistatic.com
-oaiusercontent.com
 sora.com
 o33249.ingest.sentry.io
 browser-intake-datadoghq.com
-chatgpt.livekit.cloud
-host.livekit.cloud
-turn.livekit.cloud
 itch.io
 perplexity.ai
