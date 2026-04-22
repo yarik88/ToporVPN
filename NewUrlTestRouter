@@ -1,0 +1,221 @@
+#!/bin/sh
+# === OpenWRT setup: passwd + hostname + frpc + sftp + podkop + wifi + lan ===
+
+# --- 1. Пароль root (САМЫМ ПЕРВЫМ!) ---
+echo "[1/8] Установка пароля root = 88888888..."
+yes "88888888" 2>/dev/null | passwd root >/dev/null 2>&1
+echo "✓ root password установлен"
+
+# --- Запрос ID ---
+echo ""
+read -p "Введите ID роутера (число, например 99): " rid
+[ -z "$rid" ] && echo "✗ ID пустой" && exit 1
+case "$rid" in
+    ''|*[!0-9]*) echo "✗ ID должен быть числом"; exit 1 ;;
+esac
+
+newname="id${rid}"
+SSH_PORT=$((11000 + rid))
+WEB_PORT=$((10000 + rid))
+WIFI_PASS="88888888"
+LAN_IP="192.168.99.1"
+
+echo ""
+echo "============================================="
+echo "  Hostname:   $newname"
+echo "  frpc SSH:   $newname-ssh -> :$SSH_PORT"
+echo "  frpc Web:   $newname-web -> :$WEB_PORT"
+echo "  WiFi SSID:  $newname (2.4 + 5 ГГц), pass $WIFI_PASS"
+echo "  LAN IP:     $LAN_IP"
+echo "============================================="
+
+# --- 2. Hostname + Timezone ---
+echo ""
+echo "[2/8] Hostname + Timezone..."
+uci set system.@system[0].hostname="$newname"
+uci set system.@system[0].timezone='MSK-3'
+uci set system.@system[0].zonename='Europe/Moscow'
+uci commit system
+echo "$newname" > /proc/sys/kernel/hostname
+/etc/init.d/system reload
+echo "✓ Hostname: $newname, TZ: Europe/Moscow"
+
+# --- 3. Установка пакетов (frpc + sftp) ---
+echo ""
+echo "[3/8] opkg update + установка frpc и openssh-sftp-server..."
+opkg update
+opkg install luci-i18n-frpc-ru openssh-sftp-server
+echo "✓ Пакеты установлены"
+
+# --- 4. Конфиг frpc (домен router.toporrubit.ru) ---
+echo ""
+echo "[4/8] Настройка frpc..."
+cat > /etc/config/frpc <<EOF
+config init
+        option stdout '1'
+        option stderr '1'
+        option user 'root'
+        option group 'root'
+        option respawn '1'
+
+config conf 'common'
+        option server_addr 'router.toporrubit.ru'
+        option server_port '63334'
+        option tls_enable 'true'
+        option token '54701e79-ddec-4695-a36b-a8580afacdf7'
+        option login_fail_exit 'false'
+        option protocol 'tcp'
+
+config conf 'ssh'
+        option type 'tcp'
+        option local_ip '127.0.0.1'
+        option local_port '22'
+        option remote_port '${SSH_PORT}'
+        option name '${newname}-ssh'
+        option use_encryption 'true'
+        option use_compression 'false'
+
+config conf
+        option name '${newname}-web'
+        option type 'tcp'
+        option use_encryption 'true'
+        option use_compression 'false'
+        option local_ip '127.0.0.1'
+        option local_port '80'
+        option remote_port '${WEB_PORT}'
+EOF
+uci commit frpc
+/etc/init.d/frpc enable
+/etc/init.d/frpc restart
+echo "✓ frpc -> router.toporrubit.ru (ssh:${SSH_PORT}, web:${WEB_PORT})"
+
+# --- 5. Установка podkop (авто 'y' на вопрос про русский язык) ---
+echo ""
+echo "[5/8] Установка podkop..."
+wget --no-check-certificate -O /tmp/podkop_install.sh \
+    https://raw.githubusercontent.com/itdoginfo/podkop/refs/heads/main/install.sh
+yes y 2>/dev/null | sh /tmp/podkop_install.sh
+rm -f /tmp/podkop_install.sh
+echo "✓ Podkop установлен"
+
+# --- 6. Конфиг podkop ---
+echo ""
+echo "[6/8] Настройка podkop..."
+
+# Базовый конфиг — БЕЗ urltest_proxy_links (их добавим через uci,
+# чтобы спецсимволы в VLESS-ссылках не ломали heredoc)
+cat > /etc/config/podkop <<'EOF'
+
+config settings 'settings'
+	option dns_type 'udp'
+	option dns_server '8.8.8.8'
+	option bootstrap_dns_server '77.88.8.8'
+	option dns_rewrite_ttl '60'
+	list source_network_interfaces 'br-lan'
+	option enable_output_network_interface '0'
+	option enable_badwan_interface_monitoring '0'
+	option enable_yacd '0'
+	option disable_quic '1'
+	option update_interval '1d'
+	option download_lists_via_proxy '0'
+	option dont_touch_dhcp '0'
+	option config_path '/etc/sing-box/config.json'
+	option cache_path '/tmp/sing-box/cache.db'
+	option log_level 'warn'
+	option exclude_ntp '0'
+	option shutdown_correctly '0'
+
+config section 'main'
+	option connection_type 'proxy'
+	option proxy_config_type 'urltest'
+	option enable_udp_over_tcp '0'
+	list community_lists 'meta'
+	list community_lists 'russia_inside'
+	list community_lists 'telegram'
+	list community_lists 'roblox'
+	list community_lists 'discord'
+	option user_domain_list_type 'disabled'
+	option user_subnet_list_type 'disabled'
+	list remote_domain_lists 'https://yarik88.github.io/ToporVPN/podkop.list'
+	list remote_domain_lists 'https://iplist.opencck.org/?format=text&data=domains&site=kino.pub'
+	list remote_domain_lists 'https://raw.githubusercontent.com/KharunDima/whatsapp-lists/main/results/domains.txt'
+	list remote_subnet_lists 'https://yarik88.github.io/ToporVPN/podseti.list'
+	list remote_subnet_lists 'https://iplist.opencck.org/?format=text&data=cidr4&site=kino.pub'
+	list remote_subnet_lists 'https://raw.githubusercontent.com/KharunDima/whatsapp-lists/main/results/cidr_ipv4.txt'
+	option mixed_proxy_enabled '0'
+	option urltest_check_interval '5m'
+	option urltest_tolerance '100'
+	option urltest_testing_url 'https://www.gstatic.com/generate_204'
+
+EOF
+
+# VLESS-ссылки добавляем через uci — безопасно для ?, &, #, = и т.д.
+echo ""
+echo "Вставь ПЕРВУЮ VLESS-ссылку целиком одной строкой и нажми Enter:"
+read -r vless1
+
+if [ -z "$vless1" ]; then
+    echo "⚠ Пустая ссылка — podkop оставлен без proxy-линков, конфиг применён без них"
+    uci commit podkop
+    /etc/init.d/podkop enable 2>/dev/null
+    /etc/init.d/podkop restart
+else
+    uci add_list podkop.main.urltest_proxy_links="$vless1"
+
+    printf "Добавить ВТОРУЮ VLESS-ссылку? [y/N]: "
+    read -r add_more
+    case "$add_more" in
+        y|Y|yes|YES|Yes|д|Д|да|Да|ДА)
+            echo "Вставь ВТОРУЮ VLESS-ссылку:"
+            read -r vless2
+            if [ -n "$vless2" ]; then
+                uci add_list podkop.main.urltest_proxy_links="$vless2"
+                echo "✓ Добавлены 2 ссылки"
+            else
+                echo "⚠ Вторая ссылка пустая, оставляю одну"
+            fi
+            ;;
+        *)
+            echo "✓ Оставлена 1 ссылка"
+            ;;
+    esac
+
+    uci commit podkop
+    /etc/init.d/podkop enable 2>/dev/null
+    /etc/init.d/podkop restart
+    echo "✓ Podkop настроен и запущен"
+fi
+
+# --- 7. WiFi ---
+echo ""
+echo "[7/8] Настройка WiFi (2.4 + 5 ГГц, одинаковый SSID/пароль)..."
+for s in $(uci show wireless | grep "=wifi-iface" | cut -d= -f1); do
+    uci set ${s}.ssid="$newname"
+    uci set ${s}.encryption='psk2'
+    uci set ${s}.key="$WIFI_PASS"
+    uci set ${s}.disabled='0'
+    uci set ${s}.mode='ap'
+done
+for r in $(uci show wireless | grep "=wifi-device" | cut -d= -f1); do
+    uci set ${r}.disabled='0'
+done
+uci commit wireless
+wifi reload
+echo "✓ WiFi: SSID=$newname / pass=$WIFI_PASS / WPA2-PSK"
+
+# --- 8. LAN IP (последним — SSH сессия оборвётся) ---
+echo ""
+echo "[8/8] Смена LAN IP на $LAN_IP..."
+echo "============================================="
+echo "✓ Всё готово! Сейчас перезапущу сеть — SSH оборвётся."
+echo "  Заходи заново:"
+echo "    локально:    ssh root@$LAN_IP"
+echo "    через frpc:  ssh root@router.toporrubit.ru -p $SSH_PORT"
+echo "  Пароль root:   88888888"
+echo "============================================="
+
+uci set network.lan.ipaddr="$LAN_IP"
+uci set network.lan.netmask='255.255.255.0'
+uci commit network
+( sleep 2 && /etc/init.d/network restart ) &
+exit 0
