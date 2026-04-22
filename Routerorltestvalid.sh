@@ -18,6 +18,15 @@ if [ "$rid" -lt 1 ] || [ "$rid" -gt 999 ]; then
     exit 1
 fi
 
+# --- Проверка FRPC_TOKEN (токен НЕ хранится в публичном скрипте) ---
+if [ -z "$FRPC_TOKEN" ]; then
+    echo ""
+    echo "✗ Переменная окружения FRPC_TOKEN не задана."
+    echo "  Запускай через сниппет вида:"
+    echo "    export FRPC_TOKEN=<токен> && wget ... && sh /tmp/setup.sh"
+    exit 1
+fi
+
 newname="id${rid}"
 SSH_PORT=$((11000 + rid))
 WEB_PORT=$((10000 + rid))
@@ -66,7 +75,7 @@ config conf 'common'
         option server_addr 'router.toporrubit.ru'
         option server_port '63334'
         option tls_enable 'true'
-        option token '54701e79-ddec-4695-a36b-a8580afacdf7'
+        option token '${FRPC_TOKEN}'
         option login_fail_exit 'false'
         option protocol 'tcp'
 
@@ -79,14 +88,14 @@ config conf 'ssh'
         option use_encryption 'true'
         option use_compression 'false'
 
-config conf
-        option name '${newname}-web'
+config conf 'web'
         option type 'tcp'
-        option use_encryption 'true'
-        option use_compression 'false'
         option local_ip '127.0.0.1'
         option local_port '80'
         option remote_port '${WEB_PORT}'
+        option name '${newname}-web'
+        option use_encryption 'true'
+        option use_compression 'false'
 EOF
 uci commit frpc
 /etc/init.d/frpc enable
@@ -112,7 +121,7 @@ cat > /etc/config/podkop <<'EOF'
 
 config settings 'settings'
 	option dns_type 'udp'
-	option dns_server '8.8.8.8'
+	option dns_server '77.88.8.8'
 	option bootstrap_dns_server '77.88.8.8'
 	option dns_rewrite_ttl '60'
 	list source_network_interfaces 'br-lan'
