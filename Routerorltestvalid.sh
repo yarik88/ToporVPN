@@ -162,6 +162,7 @@ echo ""
 
 added=0
 i=1
+LINKS_REPORT=""
 while [ $i -le 5 ]; do
     printf "Ссылка #%d: " "$i"
     read -r link
@@ -169,6 +170,8 @@ while [ $i -le 5 ]; do
         *://*)
             uci add_list podkop.main.urltest_proxy_links="$link"
             added=$((added + 1))
+            LINKS_REPORT="${LINKS_REPORT}    ${added}. ${link}
+"
             echo "  ✓ добавлена (#$added)"
             ;;
         *)
@@ -213,19 +216,91 @@ uci set network.lan.ipaddr="$LAN_IP"
 uci set network.lan.netmask='255.255.255.0'
 uci commit network
 
+# --- Финальный отчёт ---
 echo ""
-echo "============================================="
-echo "✓ Всё настроено. Роутер уйдёт в перезагрузку через 5 сек."
+echo "Сбор информации о системе..."
+
+SETUP_DATE=$(date "+%Y-%m-%d %H:%M:%S %Z")
+MODEL=$(cat /tmp/sysinfo/model 2>/dev/null \
+    || tr -d '\0' < /proc/device-tree/model 2>/dev/null \
+    || echo "unknown")
+BOARD_NAME=$(cat /tmp/sysinfo/board_name 2>/dev/null || echo "unknown")
+. /etc/openwrt_release 2>/dev/null
+OWRT_VERSION="${DISTRIB_DESCRIPTION:-unknown}"
+OWRT_RELEASE="${DISTRIB_RELEASE:-unknown}"
+OWRT_TARGET="${DISTRIB_TARGET:-unknown}"
+OWRT_REVISION="${DISTRIB_REVISION:-unknown}"
+KERNEL=$(uname -r)
+ARCH=$(uname -m)
+TOTAL_MEM=$(awk '/^MemTotal/{printf "%d MB", $2/1024}' /proc/meminfo 2>/dev/null || echo "?")
+FREE_MEM=$(awk '/^MemAvailable/{printf "%d MB", $2/1024}' /proc/meminfo 2>/dev/null || echo "?")
+UPTIME=$(awk '{printf "%d мин", $1/60}' /proc/uptime 2>/dev/null || echo "?")
+WAN_MAC=$(cat /sys/class/net/eth0/address 2>/dev/null || echo "unknown")
+PODKOP_VER=$(opkg list-installed podkop 2>/dev/null | awk '{print $3}')
+FRPC_VER=$(opkg list-installed frpc 2>/dev/null | awk '{print $3}')
+
+REPORT_FILE="/root/setup-info.txt"
+
+# Формируем текст отчёта (один раз, в переменной)
+REPORT="
+=================================================
+  ОТЧЁТ ПО НАСТРОЙКЕ РОУТЕРА
+=================================================
+Дата настройки:   $SETUP_DATE
+Hostname:         $newname  (id=$rid)
+
+--- Железо ---
+Модель:           $MODEL
+Board name:       $BOARD_NAME
+Архитектура:      $ARCH
+WAN MAC (eth0):   $WAN_MAC
+Память:           $FREE_MEM свободно / $TOTAL_MEM всего
+Uptime до ребута: $UPTIME
+
+--- Прошивка ---
+OpenWRT:          $OWRT_VERSION
+Release:          $OWRT_RELEASE
+Target:           $OWRT_TARGET
+Revision:         $OWRT_REVISION
+Kernel:           $KERNEL
+
+--- Доступ ---
+LAN IP:           $LAN_IP
+SSH локально:     ssh root@$LAN_IP
+SSH через frpc:   ssh root@router.toporrubit.ru -p $SSH_PORT
+Web через frpc:   http://router.toporrubit.ru:$WEB_PORT
+SFTP:             включён (openssh-sftp-server)
+Пароль root:      88888888
+
+--- WiFi ---
+SSID 2.4 + 5 ГГц: $newname
+Пароль:           $WIFI_PASS
+Шифрование:       WPA2-PSK
+
+--- frpc ---
+Версия:           ${FRPC_VER:-?}
+Сервер:           router.toporrubit.ru:63334 (TLS)
+Туннель SSH:      $newname-ssh -> remote_port $SSH_PORT
+Туннель Web:      $newname-web -> remote_port $WEB_PORT
+
+--- Podkop ---
+Версия:           ${PODKOP_VER:-?}
+Режим:            urltest
+Добавлено ссылок: $added
+${LINKS_REPORT:-    (нет добавленных ссылок)}
+=================================================
+"
+
+# Сохраняем в файл на роутере (доступен после ребута)
+echo "$REPORT" > "$REPORT_FILE"
+chmod 600 "$REPORT_FILE"
+
+# Выводим в консоль
+echo "$REPORT"
+echo "📄 Отчёт сохранён в $REPORT_FILE — после ребута:  cat $REPORT_FILE"
 echo ""
-echo "  После ребута:"
-echo "    WiFi SSID:       $newname (2.4 + 5 ГГц)"
-echo "    WiFi пароль:     $WIFI_PASS"
-echo "    LAN IP:          $LAN_IP"
-echo "    SSH локально:    ssh root@$LAN_IP"
-echo "    SSH через frpc:  ssh root@router.toporrubit.ru -p $SSH_PORT"
-echo "    Web через frpc:  http://router.toporrubit.ru:$WEB_PORT"
-echo "    Пароль root:     88888888"
-echo "============================================="
+echo "✓ Роутер уйдёт в перезагрузку через 5 секунд..."
+echo ""
 
 ( sleep 5 && reboot ) &
 exit 0
