@@ -155,40 +155,40 @@ EOF
 
 # VLESS-ссылки добавляем через uci — безопасно для ?, &, #, = и т.д.
 echo ""
-echo "Вставь ПЕРВУЮ VLESS-ссылку целиком одной строкой и нажми Enter:"
-read -r vless1
+echo "Сейчас вставляй прокси-ссылки по одной (до 5 штук)."
+echo "Подходят vless://, vmess://, trojan://, ss:// и т.п."
+echo "Чтобы закончить раньше — введи любое слово без '://' (n / no / net / x / Enter)."
+echo ""
 
-if [ -z "$vless1" ]; then
-    echo "⚠ Пустая ссылка — podkop оставлен без proxy-линков, конфиг применён без них"
-    uci commit podkop
-    /etc/init.d/podkop enable 2>/dev/null
-    /etc/init.d/podkop restart
-else
-    uci add_list podkop.main.urltest_proxy_links="$vless1"
-
-    printf "Добавить ВТОРУЮ VLESS-ссылку? [y/N]: "
-    read -r add_more
-    case "$add_more" in
-        y|Y|yes|YES|Yes|д|Д|да|Да|ДА)
-            echo "Вставь ВТОРУЮ VLESS-ссылку:"
-            read -r vless2
-            if [ -n "$vless2" ]; then
-                uci add_list podkop.main.urltest_proxy_links="$vless2"
-                echo "✓ Добавлены 2 ссылки"
-            else
-                echo "⚠ Вторая ссылка пустая, оставляю одну"
-            fi
+added=0
+i=1
+while [ $i -le 5 ]; do
+    printf "Ссылка #%d: " "$i"
+    read -r link
+    case "$link" in
+        *://*)
+            uci add_list podkop.main.urltest_proxy_links="$link"
+            added=$((added + 1))
+            echo "  ✓ добавлена (#$added)"
             ;;
         *)
-            echo "✓ Оставлена 1 ссылка"
+            echo "  → стоп"
+            break
             ;;
     esac
+    i=$((i + 1))
+done
 
-    uci commit podkop
-    /etc/init.d/podkop enable 2>/dev/null
-    /etc/init.d/podkop restart
-    echo "✓ Podkop настроен и запущен"
+if [ $added -eq 0 ]; then
+    echo "⚠ Ни одной ссылки не добавлено — podkop запустится без proxy-линков"
+else
+    echo "✓ Всего ссылок: $added"
 fi
+
+uci commit podkop
+/etc/init.d/podkop enable 2>/dev/null
+/etc/init.d/podkop restart
+echo "✓ Podkop настроен и запущен"
 
 # --- 7. WiFi ---
 echo ""
@@ -204,22 +204,28 @@ for r in $(uci show wireless | grep "=wifi-device" | cut -d= -f1); do
     uci set ${r}.disabled='0'
 done
 uci commit wireless
-wifi reload
-echo "✓ WiFi: SSID=$newname / pass=$WIFI_PASS / WPA2-PSK"
+echo "✓ WiFi сконфигурирован: SSID=$newname / pass=$WIFI_PASS / WPA2-PSK (применится после перезагрузки)"
 
-# --- 8. LAN IP (последним — SSH сессия оборвётся) ---
+# --- 8. LAN IP + перезагрузка ---
 echo ""
-echo "[8/8] Смена LAN IP на $LAN_IP..."
-echo "============================================="
-echo "✓ Всё готово! Сейчас перезапущу сеть — SSH оборвётся."
-echo "  Заходи заново:"
-echo "    локально:    ssh root@$LAN_IP"
-echo "    через frpc:  ssh root@router.toporrubit.ru -p $SSH_PORT"
-echo "  Пароль root:   88888888"
-echo "============================================="
-
+echo "[8/8] LAN IP = $LAN_IP (применится после перезагрузки)..."
 uci set network.lan.ipaddr="$LAN_IP"
 uci set network.lan.netmask='255.255.255.0'
 uci commit network
-( sleep 2 && /etc/init.d/network restart ) &
+
+echo ""
+echo "============================================="
+echo "✓ Всё настроено. Роутер уйдёт в перезагрузку через 5 сек."
+echo ""
+echo "  После ребута:"
+echo "    WiFi SSID:       $newname (2.4 + 5 ГГц)"
+echo "    WiFi пароль:     $WIFI_PASS"
+echo "    LAN IP:          $LAN_IP"
+echo "    SSH локально:    ssh root@$LAN_IP"
+echo "    SSH через frpc:  ssh root@router.toporrubit.ru -p $SSH_PORT"
+echo "    Web через frpc:  http://router.toporrubit.ru:$WEB_PORT"
+echo "    Пароль root:     88888888"
+echo "============================================="
+
+( sleep 5 && reboot ) &
 exit 0
