@@ -1,6 +1,40 @@
 #!/bin/sh
 # === OpenWRT setup: passwd + hostname + frpc + sftp + podkop + wifi + lan ===
 
+# Перенаправляем stdin прямо на терминал — спасает от ситуации, когда
+# Termius/iTerm пастит сниппет с лишним \n, и первый read хватает пустую строку
+[ -e /dev/tty ] && exec </dev/tty
+
+# Сливаем буферизованный ввод (если что-то залетело от вставки)
+while read -r -t 1 _ 2>/dev/null; do :; done
+
+# ────────────────────────────────────────────────────────────────────
+#   ЛОГО
+# ────────────────────────────────────────────────────────────────────
+cat <<'BANNER'
+
+   ████████╗ ██████╗ ██████╗  ██████╗ ██████╗     ██╗   ██╗██████╗ ███╗   ██╗
+   ╚══██╔══╝██╔═══██╗██╔══██╗██╔═══██╗██╔══██╗    ██║   ██║██╔══██╗████╗  ██║
+      ██║   ██║   ██║██████╔╝██║   ██║██████╔╝    ██║   ██║██████╔╝██╔██╗ ██║
+      ██║   ██║   ██║██╔═══╝ ██║   ██║██╔══██╗    ╚██╗ ██╔╝██╔═══╝ ██║╚██╗██║
+      ██║   ╚██████╔╝██║     ╚██████╔╝██║  ██║     ╚████╔╝ ██║     ██║ ╚████║
+      ╚═╝    ╚═════╝ ╚═╝      ╚═════╝ ╚═╝  ╚═╝      ╚═══╝  ╚═╝     ╚═╝  ╚═══╝
+
+          ┌──────────────────────────────────────────────────────────┐
+          │   T O P O R   V P N   R O U T E R S                      │
+          │                                                          │
+          │   «Private internet • No logs • No borders»              │
+          │                                                          │
+          │   ⚡  Рубит блокировки как топор  ⚡                     │
+          │   🛡  Свой приватный интернет под ключ                   │
+          │   🌐  Подписка, сервер и роутер — всё в одном решении    │
+          │                                                          │
+          │        toporrubit.ru   •   @ToporVPN                     │
+          └──────────────────────────────────────────────────────────┘
+
+BANNER
+sleep 1
+
 # --- 1. Пароль root (САМЫМ ПЕРВЫМ!) ---
 echo "[1/8] Установка пароля root = 88888888..."
 yes "88888888" 2>/dev/null | passwd root >/dev/null 2>&1
@@ -8,6 +42,8 @@ echo "✓ root password установлен"
 
 # --- Запрос ID ---
 echo ""
+# Ещё раз сливаем буфер на всякий случай (после passwd)
+while read -r -t 1 _ 2>/dev/null; do :; done
 read -p "Введите ID роутера (число 1-999, например 99): " rid
 [ -z "$rid" ] && echo "✗ ID пустой" && exit 1
 case "$rid" in
@@ -53,12 +89,16 @@ echo "$newname" > /proc/sys/kernel/hostname
 /etc/init.d/system reload
 echo "✓ Hostname: $newname, TZ: Europe/Moscow"
 
-# --- 3. Установка пакетов (frpc + sftp) ---
+# --- 3. Установка пакетов (frpc + sftp + русский LuCI) ---
 echo ""
-echo "[3/8] opkg update + установка frpc и openssh-sftp-server..."
+echo "[3/8] opkg update + установка frpc, sftp и русского LuCI..."
 opkg update
-opkg install luci-i18n-frpc-ru openssh-sftp-server
-echo "✓ Пакеты установлены"
+opkg install luci-i18n-base-ru luci-i18n-frpc-ru openssh-sftp-server
+
+# Включаем русский язык веб-интерфейса LuCI
+uci set luci.main.lang='ru' 2>/dev/null
+uci commit luci 2>/dev/null
+echo "✓ Пакеты установлены, язык LuCI: ru"
 
 # --- 4. Конфиг frpc (домен router.toporrubit.ru) ---
 echo ""
@@ -122,7 +162,7 @@ cat > /etc/config/podkop <<'EOF'
 config settings 'settings'
 	option dns_type 'udp'
 	option dns_server '77.88.8.8'
-	option bootstrap_dns_server '77.88.8.8'
+	option bootstrap_dns_server '8.8.8.8'
 	option dns_rewrite_ttl '60'
 	list source_network_interfaces 'br-lan'
 	option enable_output_network_interface '0'
@@ -218,12 +258,25 @@ done
 uci commit wireless
 echo "✓ WiFi сконфигурирован: SSID=$newname / pass=$WIFI_PASS / WPA2-PSK (применится после перезагрузки)"
 
-# --- 8. LAN IP + перезагрузка ---
+# --- 8. LAN IP + еженедельный ребут по cron ---
 echo ""
 echo "[8/8] LAN IP = $LAN_IP (применится после перезагрузки)..."
 uci set network.lan.ipaddr="$LAN_IP"
 uci set network.lan.netmask='255.255.255.0'
 uci commit network
+
+# Еженедельная перезагрузка — среда, 03:00 МСК
+echo ""
+echo "Настройка cron: автоматический ребут каждую среду в 03:00..."
+CRON_FILE="/etc/crontabs/root"
+touch "$CRON_FILE"
+# убираем старые записи автоперезагрузки, чтобы не плодить дубли
+sed -i '/# topor-weekly-reboot/d' "$CRON_FILE"
+sed -i '/reboot/d' "$CRON_FILE"
+echo "0 3 * * 3 /sbin/reboot # topor-weekly-reboot" >> "$CRON_FILE"
+/etc/init.d/cron enable
+/etc/init.d/cron restart
+echo "✓ cron: ребут каждую среду 03:00"
 
 # --- Финальный отчёт ---
 echo ""
@@ -295,8 +348,12 @@ SSID 2.4 + 5 ГГц: $newname
 --- Podkop ---
 Версия:           ${PODKOP_VER:-?}
 Режим:            urltest
+DNS / Bootstrap:  77.88.8.8 / 8.8.8.8
 Добавлено ссылок: $added
 ${LINKS_REPORT:-    (нет добавленных ссылок)}
+--- Авто-обслуживание ---
+Ребут по cron:    каждую среду в 03:00 (MSK)
+Язык LuCI:        ru
 =================================================
 "
 
@@ -308,8 +365,39 @@ chmod 600 "$REPORT_FILE"
 echo "$REPORT"
 echo "📄 Отчёт сохранён в $REPORT_FILE — после ребута:  cat $REPORT_FILE"
 echo ""
-echo "✓ Роутер уйдёт в перезагрузку через 5 секунд..."
+echo "============================================="
+echo "  Настройка завершена."
+echo "  Сохрани важные данные из сессии СЕЙЧАС —"
+echo "  после reboot SSH отвалится, пока роутер"
+echo "  не поднимется на новом LAN IP ($LAN_IP)."
+echo "============================================="
 echo ""
 
-( sleep 5 && reboot ) &
-exit 0
+# Чистим буфер ввода перед финальным вопросом
+while read -r -t 1 _ 2>/dev/null; do :; done
+
+# y/n перед перезагрузкой
+confirm=""
+while true; do
+    printf "Перезагрузить роутер сейчас? [y/N]: "
+    read -r confirm
+    case "$confirm" in
+        y|Y|yes|YES|Yes|д|Д|да|ДА|Да)
+            echo ""
+            echo "✓ Перезагрузка через 3 секунды..."
+            ( sleep 3 && reboot ) &
+            exit 0
+            ;;
+        n|N|no|NO|No|н|Н|нет|НЕТ|Нет|"")
+            echo ""
+            echo "⏸  Ребут отложен. Запусти вручную, когда будешь готов:"
+            echo "     reboot"
+            echo ""
+            echo "📄 Отчёт:  cat $REPORT_FILE"
+            exit 0
+            ;;
+        *)
+            echo "   Введи y (да) или n (нет)"
+            ;;
+    esac
+done
