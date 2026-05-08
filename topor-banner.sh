@@ -1,0 +1,210 @@
+#!/bin/sh
+# ToporVPN Router banner installer (with big ID in pseudographics)
+# Usage: sh topor-banner.sh
+
+set -e
+
+BANNER_FILE="/etc/banner"
+BACKUP_FILE="/etc/banner.bak"
+
+# --- 1. Спросить ID роутера ---
+while :; do
+    printf "Введите ID роутера (от 0 до 999): "
+    read ROUTER_ID
+    case "$ROUTER_ID" in
+        ''|*[!0-9]*)
+            echo "  ! Нужно ввести число. Попробуйте ещё раз."
+            continue
+            ;;
+    esac
+    if [ "$ROUTER_ID" -ge 0 ] && [ "$ROUTER_ID" -le 999 ]; then
+        break
+    else
+        echo "  ! Число должно быть от 0 до 999."
+    fi
+done
+
+ROUTER_ID_PADDED=$(printf "%03d" "$ROUTER_ID")
+
+# --- 2. Функция: вернуть строку №N (1..6) для цифры D ---
+# Цифры в стиле "ANSI Shadow" — той же гарнитуры, что и буквы TOPOR VPN.
+digit_line() {
+    D=$1
+    N=$2
+    case "$D" in
+        0)
+            case "$N" in
+                1) printf " ██████╗ " ;;
+                2) printf "██╔═████╗" ;;
+                3) printf "██║██╔██║" ;;
+                4) printf "████╔╝██║" ;;
+                5) printf "╚██████╔╝" ;;
+                6) printf " ╚═════╝ " ;;
+            esac ;;
+        1)
+            case "$N" in
+                1) printf " ██╗     " ;;
+                2) printf "███║     " ;;
+                3) printf "╚██║     " ;;
+                4) printf " ██║     " ;;
+                5) printf " ██║     " ;;
+                6) printf " ╚═╝     " ;;
+            esac ;;
+        2)
+            case "$N" in
+                1) printf "██████╗  " ;;
+                2) printf "╚════██╗ " ;;
+                3) printf " █████╔╝ " ;;
+                4) printf "██╔═══╝  " ;;
+                5) printf "███████╗ " ;;
+                6) printf "╚══════╝ " ;;
+            esac ;;
+        3)
+            case "$N" in
+                1) printf "██████╗  " ;;
+                2) printf "╚════██╗ " ;;
+                3) printf " █████╔╝ " ;;
+                4) printf " ╚═══██╗ " ;;
+                5) printf "██████╔╝ " ;;
+                6) printf "╚═════╝  " ;;
+            esac ;;
+        4)
+            case "$N" in
+                1) printf "██╗  ██╗ " ;;
+                2) printf "██║  ██║ " ;;
+                3) printf "███████║ " ;;
+                4) printf "╚════██║ " ;;
+                5) printf "     ██║ " ;;
+                6) printf "     ╚═╝ " ;;
+            esac ;;
+        5)
+            case "$N" in
+                1) printf "███████╗ " ;;
+                2) printf "██╔════╝ " ;;
+                3) printf "███████╗ " ;;
+                4) printf "╚════██║ " ;;
+                5) printf "███████║ " ;;
+                6) printf "╚══════╝ " ;;
+            esac ;;
+        6)
+            case "$N" in
+                1) printf " ██████╗ " ;;
+                2) printf "██╔════╝ " ;;
+                3) printf "███████╗ " ;;
+                4) printf "██╔═══██╗" ;;
+                5) printf "╚██████╔╝" ;;
+                6) printf " ╚═════╝ " ;;
+            esac ;;
+        7)
+            case "$N" in
+                1) printf "███████╗ " ;;
+                2) printf "╚════██║ " ;;
+                3) printf "    ██╔╝ " ;;
+                4) printf "   ██╔╝  " ;;
+                5) printf "   ██║   " ;;
+                6) printf "   ╚═╝   " ;;
+            esac ;;
+        8)
+            case "$N" in
+                1) printf " █████╗  " ;;
+                2) printf "██╔══██╗ " ;;
+                3) printf "╚█████╔╝ " ;;
+                4) printf "██╔══██╗ " ;;
+                5) printf "╚█████╔╝ " ;;
+                6) printf " ╚════╝  " ;;
+            esac ;;
+        9)
+            case "$N" in
+                1) printf " █████╗  " ;;
+                2) printf "██╔══██╗ " ;;
+                3) printf "╚██████║ " ;;
+                4) printf " ╚═══██║ " ;;
+                5) printf " █████╔╝ " ;;
+                6) printf " ╚════╝  " ;;
+            esac ;;
+    esac
+}
+
+D1=$(echo "$ROUTER_ID_PADDED" | cut -c1)
+D2=$(echo "$ROUTER_ID_PADDED" | cut -c2)
+D3=$(echo "$ROUTER_ID_PADDED" | cut -c3)
+
+ID_LINE_PREFIX="                              "
+ID_L1="${ID_LINE_PREFIX}$(digit_line "$D1" 1)$(digit_line "$D2" 1)$(digit_line "$D3" 1)"
+ID_L2="${ID_LINE_PREFIX}$(digit_line "$D1" 2)$(digit_line "$D2" 2)$(digit_line "$D3" 2)"
+ID_L3="${ID_LINE_PREFIX}$(digit_line "$D1" 3)$(digit_line "$D2" 3)$(digit_line "$D3" 3)"
+ID_L4="${ID_LINE_PREFIX}$(digit_line "$D1" 4)$(digit_line "$D2" 4)$(digit_line "$D3" 4)"
+ID_L5="${ID_LINE_PREFIX}$(digit_line "$D1" 5)$(digit_line "$D2" 5)$(digit_line "$D3" 5)"
+ID_L6="${ID_LINE_PREFIX}$(digit_line "$D1" 6)$(digit_line "$D2" 6)$(digit_line "$D3" 6)"
+
+# --- 3. Модель роутера ---
+MODEL=""
+if [ -r /tmp/sysinfo/model ]; then
+    MODEL=$(cat /tmp/sysinfo/model)
+elif [ -r /proc/device-tree/model ]; then
+    MODEL=$(tr -d '\000' < /proc/device-tree/model)
+fi
+[ -z "$MODEL" ] && MODEL="Unknown Router"
+
+# --- 4. Версия OpenWrt ---
+OPENWRT_VERSION=""
+if [ -r /etc/openwrt_release ]; then
+    # shellcheck disable=SC1091
+    . /etc/openwrt_release
+    if [ -n "$DISTRIB_DESCRIPTION" ]; then
+        OPENWRT_VERSION="$DISTRIB_DESCRIPTION"
+    elif [ -n "$DISTRIB_RELEASE" ]; then
+        OPENWRT_VERSION="OpenWrt $DISTRIB_RELEASE"
+    fi
+fi
+[ -z "$OPENWRT_VERSION" ] && OPENWRT_VERSION="OpenWrt"
+
+# --- 5. Бэкап ---
+if [ -f "$BANNER_FILE" ] && [ ! -f "$BACKUP_FILE" ]; then
+    cp "$BANNER_FILE" "$BACKUP_FILE"
+    echo "  + Бэкап старого баннера: $BACKUP_FILE"
+fi
+
+# --- 6. Записать баннер ---
+cat > "$BANNER_FILE" << EOF
+
+   ████████╗ ██████╗ ██████╗  ██████╗ ██████╗     ██╗   ██╗██████╗ ███╗   ██╗
+   ╚══██╔══╝██╔═══██╗██╔══██╗██╔═══██╗██╔══██╗    ██║   ██║██╔══██╗████╗  ██║
+      ██║   ██║   ██║██████╔╝██║   ██║██████╔╝    ██║   ██║██████╔╝██╔██╗ ██║
+      ██║   ██║   ██║██╔═══╝ ██║   ██║██╔══██╗    ╚██╗ ██╔╝██╔═══╝ ██║╚██╗██║
+      ██║   ╚██████╔╝██║     ╚██████╔╝██║  ██║     ╚████╔╝ ██║     ██║ ╚████║
+      ╚═╝    ╚═════╝ ╚═╝      ╚═════╝ ╚═╝  ╚═╝      ╚═══╝  ╚═╝     ╚═╝  ╚═══╝
+
+                            ─── R O U T E R   I D ───
+${ID_L1}
+${ID_L2}
+${ID_L3}
+${ID_L4}
+${ID_L5}
+${ID_L6}
+
+          ┌──────────────────────────────────────────────────────────┐
+          │   T O P O R   V P N   R O U T E R S                      │
+          │                                                          │
+          │   «Private internet • No logs • No borders»              │
+          │                                                          │
+          │   ⚡  Рубит блокировки как топор  ⚡                       │
+          │   🛡  Свой приватный интернет под ключ                    │
+          │   🌐  Подписка, сервер и роутер — всё в одном решении    │
+          │                                                          │
+          │        toporrubit.ru   •   @ToporVPN                     │
+          └──────────────────────────────────────────────────────────┘
+
+${MODEL}, ${OPENWRT_VERSION}
+by ToporRubit https://t.me/ToporVPNbot
+
+EOF
+
+echo ""
+echo "  ✓ Баннер установлен."
+echo "    ID:      ${ROUTER_ID_PADDED}"
+echo "    Модель:  ${MODEL}"
+echo "    Версия:  ${OPENWRT_VERSION}"
+echo ""
+echo "  Чтобы увидеть результат — выйдите (exit) и зайдите по SSH заново."
+echo "  Или просто: cat /etc/banner"
